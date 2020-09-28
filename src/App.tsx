@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { IonApp, IonButton, IonCard, IonCardContent, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonRow, IonTitle, IonToolbar } from '@ionic/react';
-import { calculatorOutline } from 'ionicons/icons'
+import { IonAlert, IonApp, IonCard, IonCardContent, IonCol, IonContent, IonGrid, IonHeader, IonInput, IonItem, IonLabel, IonRow, IonSegment, IonSegmentButton, IonTitle, IonToolbar } from '@ionic/react';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -20,19 +19,28 @@ import '@ionic/react/css/display.css';
 
 /* Theme variables */
 import './theme/variables.css';
+import Controls from './components/Controls';
 
 const App: React.FC = () => {
 
   const priceInput = useRef<HTMLIonInputElement>(null);
   const rentInput = useRef<HTMLIonInputElement>(null);
   const [result, setResult] = useState<number>();
+  const [errorString, setErrorString] = useState<string>();
+  const [segmentValue, setSegmentValue] = useState<'month' | 'year'>('month');
 
   const calculate = () => {
     const priceValue = priceInput.current!.value;
     const rentValue = rentInput.current!.value;
 
-    if (!priceValue || !rentValue) return
-    const renta = +rentValue * 12 * 100 / +priceValue
+    if (!priceValue || !rentValue || priceValue <= 0 || rentValue <= 0) {
+      setErrorString("Please enter valid inputs");
+      return
+    };
+
+    const factor = segmentValue === 'month' ? 12 : 1;
+
+    const renta = +rentValue * factor * 100 / +priceValue;
 
     setResult(renta)
   };
@@ -43,67 +51,78 @@ const App: React.FC = () => {
     setResult(undefined);
   };
 
+  const changeSegment = (event: CustomEvent) => {
+    setSegmentValue(event.detail.value);
+  }
+
   return (
-  <IonApp>
-    <IonHeader>
-      <IonToolbar>
-        <IonTitle>
-          Investment
-        </IonTitle>
-      </IonToolbar>
-    </IonHeader>
-    <IonContent className='ion-padding'>
-      <IonGrid>
+    <React.Fragment>
+      <IonAlert 
+        isOpen={!!errorString}
+        onDidDismiss={() => setErrorString(undefined)}
+        message={errorString}
+        buttons={['OK']}
+      />
+      <IonApp>
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>
+              Investment
+            </IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className='ion-padding'>
+          <IonSegment value={segmentValue} onIonChange={changeSegment}>
+            <IonSegmentButton value='month'>
+              <IonLabel>Month</IonLabel>
+            </IonSegmentButton>
+            <IonSegmentButton value='year'>
+              <IonLabel>Year</IonLabel>
+            </IonSegmentButton>
+          </IonSegment>
+          <IonGrid>
 
-        <IonRow>
-          <IonCol>
-            <IonItem>
-              <IonLabel position='floating'>
-                Price
-              </IonLabel>
-              <IonInput ref={priceInput}></IonInput>
-            </IonItem>
-          </IonCol>
-        </IonRow>
+            <IonRow>
+              <IonCol>
+                <IonItem>
+                  <IonLabel position='floating'>
+                    Price
+                  </IonLabel>
+                  <IonInput ref={priceInput}></IonInput>
+                </IonItem>
+              </IonCol>
+            </IonRow>
 
-        <IonRow>
-          <IonCol>
-            <IonItem>
-              <IonLabel position='floating'>
-                Rent
-              </IonLabel>
-              <IonInput ref={rentInput}></IonInput>
-            </IonItem>
-          </IonCol>
-        </IonRow>
+            <IonRow>
+              <IonCol>
+                <IonItem>
+                  <IonLabel position='floating'>
+                    Rent {segmentValue === 'month' ? '(month)' : '(year)'}
+                  </IonLabel>
+                  <IonInput ref={rentInput}></IonInput>
+                </IonItem>
+              </IonCol>
+            </IonRow>
 
-        <IonRow className='ion-margin'>
-          <IonCol className='ion-text-left'>
-            <IonButton onClick={calculate}>
-              <IonIcon slot='start' icon={calculatorOutline} />             
-              Calculate
-            </IonButton>
-          </IonCol>
-          <IonCol className='ion-text-right'>
-            <IonButton onClick={reset} fill='outline'>Reset</IonButton>
-          </IonCol>
-        </IonRow>
+            <Controls onCalculate={calculate} onReset={reset}/>
 
-        <IonRow>
-          <IonCol>
-            {result &&
-              <IonCard>
-                <IonCardContent className='ion-text-center'>
-                  {result} %
-                </IonCardContent>
-              </IonCard>
-            }
-          </IonCol>
-        </IonRow>
+            <IonRow>
+              <IonCol>
+                {result &&
+                  <IonCard>
+                    <IonCardContent className='ion-text-center'>
+                      {result.toFixed(2)} %
+                    </IonCardContent>
+                  </IonCard>
+                }
+              </IonCol>
+            </IonRow>
 
-      </IonGrid>
-    </IonContent>
-  </IonApp>
-)};
+          </IonGrid>
+        </IonContent>
+      </IonApp>
+    </React.Fragment>
+  )
+};
 
 export default App;
